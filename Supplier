@@ -1,0 +1,212 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Data;
+using System.Data.SqlClient;
+using System.Text;
+using System.IO;
+using Aanchal_RIMS.AppCode.BE;
+using Aanchal_RIMS.AppCode.BL;
+using CrystalDecisions.CrystalReports.Engine;
+using CrystalDecisions.Shared;
+using CrystalDecisions.Web;
+
+
+namespace Aanchal_RIMS.Masters
+{
+    public partial class Supplier : System.Web.UI.Page
+    {
+        DataSet ds = new DataSet();
+        BE_Class BE = new BE_Class();
+        BL_Class BL = new BL_Class();
+        ReportDocument rep = new ReportDocument();
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack == true)
+            {
+                BindArea();
+                txt_supplierID.Enabled = true;
+            }
+        }
+
+
+        private void BindArea()
+        {
+            try
+            {
+                ds = BL.Exe_GridFill_Area(BE);
+                ddl_areaID.Items.Clear();
+                ddl_areaID.DataSource = ds;
+                ddl_areaID.DataTextField = "Area_Name";
+                ddl_areaID.DataValueField = "Area_Code";
+                ddl_areaID.DataBind();
+                ddl_areaID.Items.Insert(0, new ListItem("Select", "0"));
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+        private void BindGrid()
+        {
+            BE.Area_Code = ddl_areaID.SelectedValue;
+            ds = BL.Exec_Fill_M_Supplier(BE);
+            if (ds.Tables.Count > 0)
+            {
+                gv_supplier.DataSource = ds.Tables[0];
+                gv_supplier.DataBind();
+            }
+        }
+        private void GenerateID()
+        {
+            //BE.Area_Code = ddl_areaID.SelectedValue;
+            ds = BL.Exec_Generate_M_Supplier(BE);
+            int id = Convert.ToInt32(ds.Tables[0].Rows[0]["TCOUNT"]);
+            txt_supplierID.Text = id.ToString();
+        }
+        private void SetData()
+        {
+          //  BE.ID = Convert.ToInt16(txt_ID.Text.Trim());
+            BE.Area_Code = ddl_areaID.SelectedValue;
+            BE.Supplier_ID = txt_supplierID.Text.Trim();
+            BE.Supplier_Name = txt_supplierName.Text.Trim();
+            BE.Supplier_Address = txt_supplierAddress.Text.Trim();
+            BE.Supplier_MobileNo = txt_mobileNo.Text.Trim();
+            BE.Supplier_Mail = txt_mailID.Text.Trim();
+            BE.Created_User = "";
+            BE.Supplier_Status = "A";
+            BE.Delete_Status = "N";
+            BE.Branch_ID = "1";
+
+            BE.OB = 0;
+            BE.OB_Type = "";
+        }
+
+        protected void lbtn_AddNew_Click(object sender, EventArgs e)
+        {
+           // BL.ClearControls(this);
+           
+            ClientScript.RegisterStartupScript(this.GetType(), "alert", "ShowPopup();", true);
+            //BindArea();
+            GenerateID();
+         
+            
+        }
+        protected void ddl_areaID_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            BindGrid();
+        }
+        protected void btn_submit_Click(object sender, EventArgs e)
+        {
+            SetData();
+            try
+            {
+                string str = BL.Exec_InserUpdate_M_Supplier(BE);
+                if (str == "1")
+                {
+                    lbl_alert.Text = "Record inserted successfully.";
+                    ClientScript.RegisterStartupScript(this.GetType(), "alert", "AlertPopup();", true);
+                    //ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Alert", "alert('Record inserted successfully.');", true);
+                }
+                else
+                {
+                    lbl_alert.Text = "Oops..! Something went wrong, please try again.";
+                    ClientScript.RegisterStartupScript(this.GetType(), "alert", "AlertPopup();", true);
+                    //ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Alert", "alert('Something went wrong, please try again.');", true);
+                }
+            }
+            catch (Exception ex)
+            { ex.Message.ToString(); }
+            finally
+            {
+                //BindGrid();
+                BL.ClearControls(this);
+                gv_supplier.DataSource = null;
+                gv_supplier.DataBind();
+            }
+        }
+        protected void btn_delete_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                BE.Area_Code = ddl_areaID.SelectedValue;
+               // BE.ID = Convert.ToInt16(txt_ID.Text.Trim());
+                BE.Supplier_ID = txt_supplierID.Text.Trim();
+                string str = BL.Exec_Delete_M_Supplier(BE);
+                if (str == "1")
+                {
+                    lbl_alert.Text = "Record deleted successfully.";
+                    ClientScript.RegisterStartupScript(this.GetType(), "alert", "AlertPopup();", true);
+                    // ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Alert", "alert('Record deleted successfully.');", true);
+                }
+                else
+                {
+                    lbl_alert.Text = "Oops..! Something went wrong, please try again.";
+                    ClientScript.RegisterStartupScript(this.GetType(), "alert", "AlertPopup();", true);
+                    //ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Alert", "alert('Something went wrong, please try again.');", true);
+                }
+            }
+            catch (Exception ex)
+            { ex.Message.ToString(); }
+            finally
+            {
+                //BindGrid();
+                BL.ClearControls(this);
+                gv_supplier.DataSource = null;
+                gv_supplier.DataBind();
+            }
+        }
+        protected void gv_supplier_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+        protected void gv_supplier_RowCommand(object sender, GridViewCommandEventArgs e)
+        {
+            if (e.CommandName=="Update")
+            {
+                int rowIndex = Convert.ToInt32(e.CommandArgument);
+                GridViewRow row = gv_supplier.Rows[rowIndex];
+              //  txt_ID.Text = row.Cells[0].Text;
+                txt_supplierID.Text = row.Cells[1].Text;
+                txt_supplierName.Text = row.Cells[2].Text;
+                txt_supplierAddress.Text = row.Cells[3].Text;
+                txt_mobileNo.Text = row.Cells[4].Text;
+                txt_mailID.Text = row.Cells[5].Text;
+               
+            }
+            if (e.CommandName == "Delete")
+            {
+                int rowIndex = Convert.ToInt32(e.CommandArgument);
+                GridViewRow row = gv_supplier.Rows[rowIndex];
+              //  txt_ID.Text = row.Cells[0].Text;
+                txt_supplierID.Text = row.Cells[1].Text;
+            }
+        }
+        protected void gv_supplier_RowUpdating(object sender, GridViewUpdateEventArgs e)
+        {
+            txt_supplierID.Enabled = false;
+            ClientScript.RegisterStartupScript(this.GetType(), "alert", "ShowPopup();", true);
+        }
+        protected void gv_supplier_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        {
+            ClientScript.RegisterStartupScript(this.GetType(), "alert", "DeleteShowPopup();", true);
+        }
+        protected void gv_supplier_PageIndexChanging(object sender, GridViewPageEventArgs e)
+        {
+
+        }
+        protected void btn_Report_Click(object sender, EventArgs e)
+        {
+            BE.Area_Code = ddl_areaID.SelectedValue;
+            rep.Load(Server.MapPath("~/Reports/Reports/Rpt_Supplier.rpt"));
+            ds = BL.Exec_Report_M_Supplier(BE);
+            rep.DataSourceConnections.Clear();
+            rep.SetDataSource(ds.Tables[0]);
+            rep.Refresh();
+            rep.ExportToHttpResponse(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat, Response, false, "Supplier");
+        }
+    }
+}
